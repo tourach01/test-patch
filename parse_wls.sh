@@ -47,19 +47,20 @@ detect_product_type() {
 }
 
 
+
 extract_patch_name() {
   local file="$1"
   local line
+  local pname pver
 
-  # Cas 1 : "Oracle WLS Patch Set Update 14.1.1.0.250910 README"
-  line="$(grep -Ei '^[[:space:]]*Oracle .*README' "$file" | head -n1 || true)"
+  line="$(grep -Ei '^[[:space:]]*Oracle.*README' "$file" | head -n1 || true)"
   if [[ -n "$line" ]]; then
     echo "$line" | \
       sed -E 's/^[[:space:]]+//; s/[[:space:]]+README.*$//I'
     return 0
   fi
 
-  # Cas 2 : "This is the README file for OPatch 13.9.4.2.21, ..."
+
   line="$(grep -Ei 'README file for' "$file" | head -n1 || true)"
   if [[ -n "$line" ]]; then
     echo "$line" | \
@@ -67,8 +68,24 @@ extract_patch_name() {
     return 0
   fi
 
+
+  pname="$(grep -Ei 'Product[[:space:]]+Patched' "$file" | head -n1 | \
+           sed -E 's/.*Product[[:space:]]+Patched[[:space:]]*:[[:space:]]*//I; s/[[:space:]]+$//' || true)"
+
+  pver="$(grep -Ei 'Product[[:space:]]+Version' "$file" | head -n1 | \
+          grep -Eo '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || true)"
+
+  if [[ -n "$pname" && -n "$pver" ]]; then
+    echo "$pname $pver"
+    return 0
+  elif [[ -n "$pname" ]]; then
+    echo "$pname"
+    return 0
+  fi
+
   echo ""
 }
+
 
 extract_versions() {
   local file="$1"
